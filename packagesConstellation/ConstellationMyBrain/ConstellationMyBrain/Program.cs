@@ -36,13 +36,22 @@ namespace ConstellationMyBrain
         /// </summary>
         public override void OnStart()
         {
+            //events:
+            this.CapteurInterieur.ValueChanged += CapteurInterieur_ValueChanged;
+            this.CapteurExterieur.ValueChanged += CapteurExterieur_ValueChanged;
+
             PackageHost.WriteInfo("Valeur du stateObject CapteurInterieur : {0}", this.CapteurInterieur.DynamicValue.Etat);
             PackageHost.WriteInfo("Valeur du stateObject CapteurExterieur : {0}", this.CapteurExterieur.DynamicValue.Etat);
             PackageHost.WriteInfo("Valeur du stateObject PresenceAnimale : {0}", this.PresenceAnimale.DynamicValue.Etat);
             PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Chatiere.DynamicValue.Etat);
-            this.CapteurInterieur.ValueChanged += CapteurInterieur_ValueChanged;
+            
             PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.CapteurInterieur.Value.Name,true);
             PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Chatiere.DynamicValue.Etat);
+        }
+
+        private void CapteurExterieur_ValueChanged(object sender, StateObjectChangedEventArgs e)
+        {
+
         }
 
         /// <summary>
@@ -52,7 +61,6 @@ namespace ConstellationMyBrain
         /// <param name="e">The <see cref="StateObjectChangedEventArgs"/> instance containing the event data.</param>
         private void CapteurInterieur_ValueChanged(object sender, StateObjectChangedEventArgs e)
         {
-            PackageHost.WriteInfo("{0}", this.Chatiere.DynamicValue.Etat.GetType());
             if (e.NewState.DynamicValue.Etat == "True" && this.Chatiere.DynamicValue.Etat == "False")
             {
                 PackageHost.WriteInfo("Ouverture de la chatiere");
