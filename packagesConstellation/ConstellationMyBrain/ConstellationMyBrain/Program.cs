@@ -10,21 +10,42 @@ namespace ConstellationMyBrain
 {
     public class Program : PackageBase
     {
-        //Capteur exterieur
+        /// <summary>
+        /// Gets or sets the outdoor sensor's state object.
+        /// </summary>
+        /// <value>
+        /// The outdoor sensor.
+        /// </value>
         [StateObjectLink("*","Chatiere","CapteurExterieur")]
-        public StateObjectNotifier CapteurExterieur { get; set; }
+        public StateObjectNotifier OutdoorSensor { get; set; }
 
-        //Capteur interieur
+        /// <summary>
+        /// Gets or sets the indoor sensor's state object.
+        /// </summary>
+        /// <value>
+        /// The indoor sensor.
+        /// </value>
         [StateObjectLink("*", "Chatiere", "CapteurInterieur")]
-        public StateObjectNotifier CapteurInterieur { get; set; }
+        public StateObjectNotifier IndoorSensor { get; set; }
 
-        //Etat de la chatiere
+        /// <summary>
+        /// Gets or sets the flap's state object.
+        /// </summary>
+        /// <value>
+        /// The flap.
+        /// </value>
         [StateObjectLink("*", "Chatiere", "Chatiere")]
-        public StateObjectNotifier Chatiere { get; set; }
+        public StateObjectNotifier Flap { get; set; }
 
         //Presence de l'animale
+        /// <summary>
+        /// Gets or sets the animal presence's state object.
+        /// </summary>
+        /// <value>
+        /// The animal presence.
+        /// </value>
         [StateObjectLink("*", "Chatiere", "PresenceAnimale")]
-        public StateObjectNotifier PresenceAnimale { get; set; }
+        public StateObjectNotifier AnimalPresence { get; set; }
 
         static void Main(string[] args)
         {
@@ -37,60 +58,89 @@ namespace ConstellationMyBrain
         public override void OnStart()
         {
             //events:
-            this.CapteurInterieur.ValueChanged += CapteurInterieur_ValueChanged;
-            this.CapteurExterieur.ValueChanged += CapteurExterieur_ValueChanged;
+            this.IndoorSensor.ValueChanged += IndoorSensor_ValueChanged;
+            this.OutdoorSensor.ValueChanged += OutdoorSensor_ValueChanged;
 
-            PackageHost.WriteInfo("Valeur du stateObject CapteurInterieur : {0}", this.CapteurInterieur.DynamicValue.Etat);
-            PackageHost.WriteInfo("Valeur du stateObject CapteurExterieur : {0}", this.CapteurExterieur.DynamicValue.Etat);
-            PackageHost.WriteInfo("Valeur du stateObject PresenceAnimale : {0}", this.PresenceAnimale.DynamicValue.Etat);
-            PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Chatiere.DynamicValue.Etat);
+            //Debug : value of each state object
+            PackageHost.WriteInfo("Valeur du stateObject CapteurInterieur : {0}", this.IndoorSensor.DynamicValue.Etat);
+            PackageHost.WriteInfo("Valeur du stateObject CapteurExterieur : {0}", this.OutdoorSensor.DynamicValue.Etat);
+            PackageHost.WriteInfo("Valeur du stateObject PresenceAnimale : {0}", this.AnimalPresence.DynamicValue.Etat);
+            PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Flap.DynamicValue.Etat);
             
-            PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.CapteurInterieur.Value.Name,true);
-            PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Chatiere.DynamicValue.Etat);
-        }
-
-        private void CapteurExterieur_ValueChanged(object sender, StateObjectChangedEventArgs e)
-        {
-
+            //Change the value of the state object CapteurInterieur to activate the event
+            PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.IndoorSensor.Value.Name,true);
+            PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Flap.DynamicValue.Etat);
         }
 
         /// <summary>
-        /// Handles the ValueChanged event of the CapteurInterieur control.
+        /// Handles the ValueChanged event of the IndoorSensor control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="StateObjectChangedEventArgs"/> instance containing the event data.</param>
-        private void CapteurInterieur_ValueChanged(object sender, StateObjectChangedEventArgs e)
+        private void IndoorSensor_ValueChanged(object sender, StateObjectChangedEventArgs e)
         {
-            if (e.NewState.DynamicValue.Etat == "True" && this.Chatiere.DynamicValue.Etat == "False")
+            //If the indoor sensor detect the necklace and the pet was inside
+            if (e.NewState.DynamicValue.Etat == "True" && this.AnimalPresence.DynamicValue.Etat == "True")
             {
-                PackageHost.WriteInfo("Ouverture de la chatiere");
-                PackageHost.CreateMessageProxy("Chatiere").OuvrirChatiere();
-                PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Chatiere.Value.Name,true);
-
-
-                /*int ouverture = PackageHost.CreateMessageProxy("Chatiere").OuvrirChatiere();
-                if (ouverture == 0)
+                if (this.Flap.DynamicValue.Etat == "False")
                 {
-                    PackageHost.CreateMessageProxy("Chatiere").Chatiere_ValueChange(true);
+                    PackageHost.WriteInfo("Ouverture de la chatiere");
+                    PackageHost.CreateMessageProxy("Chatiere").OpenFlap();
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, true);
+
+                    /*int open = PackageHost.CreateMessageProxy("Chatiere").OpenFlap();
+                    if (open == 0)
+                    {
+                        PackageHost.CreateMessageProxy("Chatiere").Chatiere_ValueChange(true);
+                    }
+                    else
+                    {
+                        PackageHost.WriteWarn("Attention la chatiere n'a pas pu s'ouvrir");
+                        //send a message pushbullet to the user
+                    }*/
                 }
                 else
                 {
-                    PackageHost.WriteWarn("Attention la chatiere n'a pas pu s'ouvrir");
-                    //Envoyer aussi par pushbullet un message au telephone de l'utilisateur
-                }*/
+                    //Close the flap
+                    PackageHost.WriteInfo("Fermeture de la chatiere");
+                    PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, false);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, true);
+                }
 
             }
-            else if(e.NewState.DynamicValue.Etat == "True" && this.Chatiere.DynamicValue.Etat == "True")
+            //if the indoor sensor detect the necklace and the pet was outside
+            else if (e.NewState.DynamicValue.Etat == "True" && this.AnimalPresence.DynamicValue.Etat == "False")
             {
-                /*PackageHost.WriteInfo("Fermeture de la chatiere");
-                int ouverture = PackageHost.CreateMessageProxy("Chatiere").FermerChatiere();
-                if (ouverture == 0) { }
+                //If the flap is closed
+                if(this.Flap.DynamicValue.Etat == "False")
+                {
+                    //Nothing to do
+                }
                 else
                 {
-                    PackageHost.WriteWarn("Attention la chatiere n'a pas pu se fermer");
-                    //Envoyer aussi par pushbullet un message au telephone de l'utilisateur
-                }*/
+                    PackageHost.WriteInfo("Fermeture de la chatiere");
+                    PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, false);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, true);
+                }
             }
+            else
+            {
+                //Nothing to do
+            }
+        }
+
+
+        /// <summary>
+        /// Handles the ValueChanged event of the OutdoorSensor control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="StateObjectChangedEventArgs"/> instance containing the event data.</param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void OutdoorSensor_ValueChanged(object sender, StateObjectChangedEventArgs e)
+        {
+            
         }
     }
 }

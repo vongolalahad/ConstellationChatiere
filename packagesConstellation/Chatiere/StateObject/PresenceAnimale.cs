@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Chatiere.StateObject
 {
+    /// <summary>
+    /// Informs if the pet is inside (Etat = true) or outside (Etat = false)
+    /// </summary>
     class PresenceAnimale
     {
         public bool Etat { get; set; }
