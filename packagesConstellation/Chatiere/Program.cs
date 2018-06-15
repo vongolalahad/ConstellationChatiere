@@ -24,12 +24,12 @@ namespace Chatiere
             var OutdoorSensor = new StateObject.State(); OutdoorSensor.Etat = false;
             var IndoorSensor = new StateObject.State(); IndoorSensor.Etat = false;
             var Flap = new StateObject.State(); Flap.Etat = false;
-            var PresenceAnimal = new StateObject.PresenceAnimale(); PresenceAnimal.Etat = true;
+            var AnimalPresence = new StateObject.AnimalPresence(); AnimalPresence.Etat = true;
             //Envoi des valeur sur constellation
             PackageHost.PushStateObject("CapteurInterieur",IndoorSensor,lifetime: 0);
             PackageHost.PushStateObject("CapteurExterieur", OutdoorSensor, lifetime: 0);
             PackageHost.PushStateObject("Chatiere", Flap, lifetime: 0);
-            PackageHost.PushStateObject("PresenceAnimale", PresenceAnimal, lifetime: 0);
+            PackageHost.PushStateObject("PresenceAnimale", AnimalPresence, lifetime: 0);
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace Chatiere
         [MessageCallback]
         public void StateObjectAnimalPresence_ChangeValue(string so, bool change)
         {
-            var StateObject = new StateObject.PresenceAnimale();
+            var StateObject = new StateObject.AnimalPresence();
             StateObject.Etat = change;
             PackageHost.PushStateObject(so, StateObject, lifetime: 0);
         }

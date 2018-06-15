@@ -9,7 +9,7 @@ namespace Chatiere.StateObject
     /// <summary>
     /// Informs if the pet is inside (Etat = true) or outside (Etat = false)
     /// </summary>
-    class PresenceAnimale
+    class AnimalPresence
     {
         public bool Etat { get; set; }
     }

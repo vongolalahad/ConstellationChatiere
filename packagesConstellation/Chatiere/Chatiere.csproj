@@ -54,7 +54,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StateObject\PresenceAnimale.cs" />
+    <Compile Include="StateObject\AnimalPresence.cs" />
     <Compile Include="StateObject\State.cs" />
   </ItemGroup>
   <ItemGroup>

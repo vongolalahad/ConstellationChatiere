@@ -37,7 +37,6 @@ namespace ConstellationMyBrain
         [StateObjectLink("*", "Chatiere", "Chatiere")]
         public StateObjectNotifier Flap { get; set; }
 
-        //Presence de l'animale
         /// <summary>
         /// Gets or sets the animal presence's state object.
         /// </summary>
@@ -60,6 +59,7 @@ namespace ConstellationMyBrain
             //events:
             this.IndoorSensor.ValueChanged += IndoorSensor_ValueChanged;
             this.OutdoorSensor.ValueChanged += OutdoorSensor_ValueChanged;
+            this.Flap.ValueChanged += Flap_ValueChanged;
 
             //Debug : value of each state object
             PackageHost.WriteInfo("Valeur du stateObject CapteurInterieur : {0}", this.IndoorSensor.DynamicValue.Etat);
@@ -68,8 +68,37 @@ namespace ConstellationMyBrain
             PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Flap.DynamicValue.Etat);
             
             //Change the value of the state object CapteurInterieur to activate the event
-            PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.IndoorSensor.Value.Name,true);
-            PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Flap.DynamicValue.Etat);
+            //PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.IndoorSensor.Value.Name,true);
+            //Thread.Sleep(5000);
+            //PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Flap.DynamicValue.Etat);
+        }
+
+        /// <summary>
+        /// Handles the ValueChanged event of the Flap control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="StateObjectChangedEventArgs"/> instance containing the event data.</param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void Flap_ValueChanged(object sender, StateObjectChangedEventArgs e)
+        {
+            //If the flap is opened
+            if(e.NewState.DynamicValue.Etat == "True")
+            {
+                //while(this.IndoorSensor.DynamicValue.Etat == "True" || this.OutdoorSensor.DynamicValue.Etat == "True")
+                //{
+                    //If the pet is under one of the sensor, let the flap open
+                //}
+                //wait 10 seconds and if it's still opened then close it
+                Thread.Sleep(10000);
+                if (this.Flap.DynamicValue.Etat == "True")
+                {
+                    PackageHost.WriteInfo("Fermeture de la chatiere");
+                    PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, false);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, true);
+                }
+            }
+            //Else, nothing to do
         }
 
         /// <summary>
@@ -140,7 +169,52 @@ namespace ConstellationMyBrain
         /// <exception cref="NotImplementedException"></exception>
         private void OutdoorSensor_ValueChanged(object sender, StateObjectChangedEventArgs e)
         {
-            
+            //If the indoor sensor detect the necklace and the pet was inside
+            if(e.NewState.DynamicValue.Etat == "True" && this.AnimalPresence.DynamicValue.Etat == "True")
+            {
+                //If the flap is closed
+                if (this.Flap.DynamicValue.Etat == "False")
+                {
+                    //Nothing to do
+                }
+                else
+                {
+                    //Close the flap
+                    PackageHost.WriteInfo("Fermeture de la chatiere");
+                    PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, false);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, false);
+                }
+            }
+            //If the indoor sensor detect the necklace and the pet was outside
+            else if (e.NewState.DynamicValue.Etat == "True" && this.AnimalPresence.DynamicValue.Etat == "False")
+            {
+                if (this.Flap.DynamicValue.Etat == "False")
+                {
+                    PackageHost.WriteInfo("Ouverture de la chatiere");
+                    PackageHost.CreateMessageProxy("Chatiere").OpenFlap();
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, true);
+
+                    /*int open = PackageHost.CreateMessageProxy("Chatiere").OpenFlap();
+                    if (open == 0)
+                    {
+                        PackageHost.CreateMessageProxy("Chatiere").Chatiere_ValueChange(true);
+                    }
+                    else
+                    {
+                        PackageHost.WriteWarn("Attention la chatiere n'a pas pu s'ouvrir");
+                        //send a message pushbullet to the user
+                    }*/
+                }
+                else
+                {
+                    //Close the flap
+                    PackageHost.WriteInfo("Fermeture de la chatiere");
+                    PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, false);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, false);
+                }
+            }
         }
     }
 }
