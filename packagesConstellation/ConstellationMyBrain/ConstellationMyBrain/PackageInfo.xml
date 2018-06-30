@@ -14,5 +14,8 @@
   </Compatibility>
   <Settings>
     <!-- Add your package's settings here -->
+    <Setting name="interval" type="Int32" description="Time's interval (ms)" isRequired="false" defaultValue="3600000"/>
+    <Setting name="LockIntervalLow" type="Int32" defaultValue="7" description="" isRequired="false"/>
+    <Setting name="LockIntervalHigh" type="Int32" defaultValue="23" description="" isRequired="false"/>
   </Settings>
 </Package>

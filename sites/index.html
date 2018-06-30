@@ -1,21 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" ng-app="MyApp">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="./css/style.css">
-    <title>Title</title>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Kit</title>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/signalr/jquery.signalr-2.2.2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.myconstellation.io/js/Constellation-1.8.2.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js"></script>
+    <script type="text/javascript" src="https://cdn.myconstellation.io/js/ngConstellation-1.8.2.min.js"></script>
+    <script type="text/javascript" src="js/constellation.js"></script>
 </head>
-<body>
-    <header></header>
-    <p>
-        <label for="switch">
-            <input type="checkbox" name="" id="switch" class="switch">
-            <span class="rounded"></span>
-        </label>
-        
-    </p>
-    <script type="text/javascript" src="./js/app.js"></script>
+<body ng-controller="MyController">
+    <header>Pet Kit</header>
+    <div class="box" ng-repeat="so in Chatiere">
+        <div class="box_content">
+            <p class="state_object_name">{{so.Name}}</p>
+            <p>
+                <label class="switch">
+                    <span class="switch_span">
+                        <input type="checkbox" name="" class="switch" ng-model="so.Value.Etat">
+                        <span class="switch_span_container" ng-click="toggleClassChecked(so)">
+                            <span class="on">{{so.Type == "StateObject.State" ? "ON" : "IN"}}</span>
+                            <span class="mid"></span>
+                            <span class="off">{{so.Type == "StateObject.State" ? "OFF" : "OUT"}}</span>
+                        </span>
+                    </span>
+                </label>
+            </p>
+        </div>
+    </div>
+    <div class="img">
+        <img src="img/logo.png">
+    </div>
+    <footer>
+        <p>
+            Copyright &copy; Pet Kit 2017-2018 - All Right Reserved
+        </p>
+    </footer>
 </body>
 </html>

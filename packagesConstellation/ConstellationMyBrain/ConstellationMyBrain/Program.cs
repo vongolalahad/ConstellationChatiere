@@ -17,7 +17,7 @@ namespace ConstellationMyBrain
         /// <value>
         /// The outdoor sensor.
         /// </value>
-        [StateObjectLink("*","Chatiere","CapteurExterieur")]
+        [StateObjectLink("*", "Chatiere", "CapteurExterieur")]
         public StateObjectNotifier OutdoorSensor { get; set; }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace ConstellationMyBrain
         /// <value>
         /// The light.
         /// </value>
-        [StateObjectLink("*","Chatiere","Light")]
+        [StateObjectLink("*", "Chatiere", "Lumiere")]
         public StateObjectNotifier Light { get; set; }
 
         /// <summary>
@@ -62,13 +62,17 @@ namespace ConstellationMyBrain
         /// <value>
         /// The lock flap.
         /// </value>
-        [StateObjectLink("*","Chatiere","LockFlap")]
+        [StateObjectLink("*", "Chatiere", "VerouillerChatiere")]
         public StateObjectNotifier LockFlap { get; set; }
+
+        [StateObjectLink("*", "DayInfo", "SunInfo")]
+        public StateObjectNotifier SunInfo { get; set; }
 
         static void Main(string[] args)
         {
             PackageHost.Start<Program>(args);
         }
+
 
         /// <summary>
         /// Called when the package is started.
@@ -80,16 +84,44 @@ namespace ConstellationMyBrain
             this.OutdoorSensor.ValueChanged += OutdoorSensor_ValueChanged;
             this.Flap.ValueChanged += Flap_ValueChanged;
 
-            //Debug : value of each state object
-            PackageHost.WriteInfo("Valeur du stateObject CapteurInterieur : {0}", this.IndoorSensor.DynamicValue.Etat);
-            PackageHost.WriteInfo("Valeur du stateObject CapteurExterieur : {0}", this.OutdoorSensor.DynamicValue.Etat);
-            PackageHost.WriteInfo("Valeur du stateObject PresenceAnimale : {0}", this.AnimalPresence.DynamicValue.Etat);
-            PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Flap.DynamicValue.Etat);
-            
-            //Change the value of the state object CapteurInterieur to activate the event
-            //PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.IndoorSensor.Value.Name,true);
-            //Thread.Sleep(5000);
-            //PackageHost.WriteInfo("Valeur du stateObject Chatier : {0}", this.Flap.DynamicValue.Etat);
+            //Push state object with an interval (default value : 1 seconde)
+            Task.Run(async () =>
+            {
+                while (PackageHost.IsRunning)
+                {
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.IndoorSensor.Value.Name, this.IndoorSensor.DynamicValue.Etat);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.OutdoorSensor.Value.Name, this.OutdoorSensor.DynamicValue.Etat);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, this.Flap.DynamicValue.Etat);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Light.Value.Name, this.Light.DynamicValue.Etat);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.LockFlap.Value.Name, this.LockFlap.DynamicValue.Etat);
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, this.AnimalPresence.DynamicValue.Etat);
+                    await Task.Delay(PackageHost.GetSettingValue<int>("interval"));
+                }
+            });
+
+            Task.Run(async () =>
+            {
+                while (PackageHost.IsRunning)
+                {
+                    while (true)
+                    {
+                        if (DateTime.Now.Hour >= PackageHost.GetSettingValue<int>("LockIntervalHigh"))
+                        {
+                            //change the state object to on
+                            PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.LockFlap.Value.Name, true);
+                            break;
+                        }
+                        await Task.Delay(15000);
+                    }
+                    while (DateTime.Now.Hour < PackageHost.GetSettingValue<int>("LockIntervalLow")
+                        || DateTime.Now.Hour >= PackageHost.GetSettingValue<int>("LockIntervalHigh"))
+                    {
+                        await Task.Delay(15000);
+                    }
+                    //change the state object to off
+                    PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.LockFlap.Value.Name, false);
+                }
+            });
         }
 
         /// <summary>
@@ -98,15 +130,14 @@ namespace ConstellationMyBrain
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="StateObjectChangedEventArgs"/> instance containing the event data.</param>
         /// <exception cref="NotImplementedException"></exception>
-        private void Flap_ValueChanged(object sender, StateObjectChangedEventArgs e)
+        private async void Flap_ValueChanged(object sender, StateObjectChangedEventArgs e)
         {
             //If the flap is opened
-            if((bool)e.NewState.DynamicValue.Etat)
+            if ((bool)e.NewState.DynamicValue.Etat)
             {
-                Thread.Sleep(10000);
+                await Task.Delay(10000);
                 if ((bool)this.Flap.DynamicValue.Etat)
                 {
-                    PackageHost.WriteInfo("Fermeture de la chatiere");
                     PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
                 }
             }
@@ -120,34 +151,40 @@ namespace ConstellationMyBrain
         /// <param name="e">The <see cref="StateObjectChangedEventArgs"/> instance containing the event data.</param>
         private void IndoorSensor_ValueChanged(object sender, StateObjectChangedEventArgs e)
         {
-            //If the indoor sensor detect the necklace and the pet was inside
+            //If the indoor sensor detect the collar and the pet was inside
             if ((bool)e.NewState.DynamicValue.Etat && (bool)this.AnimalPresence.DynamicValue.Etat)
             {
-                if (this.Flap.DynamicValue.Etat == "False")
+                if ((bool)this.LockFlap.DynamicValue.Etat)
                 {
-                    PackageHost.WriteInfo("Ouverture de la chatiere");
-                    PackageHost.CreateMessageProxy("Chatiere").OpenFlap();
+                        //Do not open the flap
                 }
                 else
                 {
-                    //Close the flap
-                    PackageHost.WriteInfo("Fermeture de la chatiere");
-                    PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
-                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, true);
+                    if (!(bool)this.Flap.DynamicValue.Etat)
+                    {
+                        PackageHost.CreateMessageProxy("Chatiere").OpenFlap();
+                        if (DayPeriod())
+                        {
+                            PackageHost.CreateMessageProxy("Chatiere").SwitchOnLed();
+                        }
+                    }
+                    else
+                    {
+                        //Nothing to do
+                    }
                 }
 
             }
-            //if the indoor sensor detect the necklace and the pet was outside
+            //if the indoor sensor detect the collar and the pet was outside
             else if ((bool)e.NewState.DynamicValue.Etat && !(bool)this.AnimalPresence.DynamicValue.Etat)
             {
                 //If the flap is closed
-                if((bool)this.Flap.DynamicValue.Etat)
+                if (!(bool)this.Flap.DynamicValue.Etat)
                 {
                     //Nothing to do
                 }
                 else
                 {
-                    PackageHost.WriteInfo("Fermeture de la chatiere");
                     PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
                     PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, true);
                 }
@@ -167,8 +204,8 @@ namespace ConstellationMyBrain
         /// <exception cref="NotImplementedException"></exception>
         private void OutdoorSensor_ValueChanged(object sender, StateObjectChangedEventArgs e)
         {
-            //If the indoor sensor detect the necklace and the pet was inside
-            if((bool)e.NewState.DynamicValue.Etat && (bool)this.AnimalPresence.DynamicValue.Etat)
+            //If the outdoor sensor detect the necklace and the pet was inside
+            if ((bool)e.NewState.DynamicValue.Etat && (bool)this.AnimalPresence.DynamicValue.Etat)
             {
                 //If the flap is closed
                 if (!(bool)this.Flap.DynamicValue.Etat)
@@ -178,35 +215,60 @@ namespace ConstellationMyBrain
                 else
                 {
                     //Close the flap
-                    PackageHost.WriteInfo("Fermeture de la chatiere");
                     PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
                     PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, false);
                 }
             }
-            //If the indoor sensor detect the necklace and the pet was outside
+            //If the outdoor sensor detect the necklace and the pet was outside
             else if ((bool)e.NewState.DynamicValue.Etat && !(bool)this.AnimalPresence.DynamicValue.Etat)
             {
                 if (!(bool)this.Flap.DynamicValue.Etat)
                 {
-                    PackageHost.WriteInfo("Ouverture de la chatiere");
-                    Task<dynamic> retour = PackageHost.CreateMessageProxy("Chatiere").OpenFlap<int>();
-                    //PackageHost.CreateMessageProxy("Chatiere").StateObjectState_ChangeValue(this.Flap.Value.Name, true);
-
-                    retour.Wait(2000);
-                    if (!(bool)retour.Result)
+                    if ((bool)this.LockFlap.DynamicValue.Etat)
                     {
-                        PackageHost.WriteWarn("Attention la chatiere n'a pas pu s'ouvrir");
-                        //send a message pushbullet to the user
+                        //Do not open the flap
+                    }
+                    else
+                    {
+                        if (!(bool)this.Flap.DynamicValue.Etat)
+                        {
+                            PackageHost.CreateMessageProxy("Chatiere").OpenFlap();
+                            if (DayPeriod())
+                            {
+                                PackageHost.CreateMessageProxy("Chatiere").SwitchOnLed();
+                            }
+                            else
+                            {
+
+                                //Nothing to do
+                            }
+                        }
+                        else
+                        {
+                            //Nothing to do
+                        }
                     }
                 }
                 else
                 {
-                    //Close the flap
-                    PackageHost.WriteInfo("Fermeture de la chatiere");
-                    PackageHost.CreateMessageProxy("Chatiere").CloseFlap();
-                    PackageHost.CreateMessageProxy("Chatiere").StateObjectAnimalPresence_ChangeValue(this.AnimalPresence.Value.Name, false);
+                    //Nothing to do
                 }
             }
+        }
+
+        private bool DayPeriod()
+        {
+            PackageHost.WriteInfo("{0}", this.SunInfo.DynamicValue.Sunset);
+            String[] ArraySunrise = ((string)this.SunInfo.DynamicValue.Sunrise).Split(':');
+            String[] ArraySunset = ((string)this.SunInfo.DynamicValue.Sunset).Split(':');
+            if (DateTime.Now.Hour >= Int32.Parse(ArraySunset[0])
+                && DateTime.Now.Hour <= Int32.Parse(ArraySunrise[0])
+                && DateTime.Now.Minute >= Int32.Parse(ArraySunset[1])
+                && DateTime.Now.Minute <= Int32.Parse(ArraySunrise[1]))
+            {
+                return true;
+            }
+            return false;
         }
     }
 }
